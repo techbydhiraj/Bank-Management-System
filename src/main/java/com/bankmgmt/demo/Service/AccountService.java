@@ -5,7 +5,10 @@ import com.bankmgmt.demo.DTO.DepositOrWithdrawRequest;
 import com.bankmgmt.demo.DTO.TransOrReceiveMoney;
 import com.bankmgmt.demo.Entity.Account;
 import com.bankmgmt.demo.Entity.Customer;
+import com.bankmgmt.demo.Entity.Transaction;
+import com.bankmgmt.demo.Entity.TransactionType;
 import com.bankmgmt.demo.Repository.AccountRepository;
+import com.bankmgmt.demo.Repository.TransactionRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,6 +24,9 @@ public class AccountService {
 
     @Autowired
     private CustomerService customerService;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
 
     public Account createAccount(AccountRequest request){
 
@@ -49,7 +55,7 @@ public class AccountService {
 
     public Account depositMoney(DepositOrWithdrawRequest request){
 
-           Account account = accountRepository.findByAccountNumber(request.getAccountNumber());
+        Account account = accountRepository.findByAccountNumber(request.getAccountNumber());
 
 
         if (account == null) {
@@ -60,10 +66,17 @@ public class AccountService {
             throw new RuntimeException("Deposit amount must be greater than 0");
         }
 
-        Double updateBalance = account.getBalance() + request.getAmount();
-        account.setBalance(updateBalance);
+        account.setBalance( account.getBalance() + request.getAmount());
 
-           return accountRepository.save(account);
+        accountRepository.save(account);
+
+        Transaction transaction = new Transaction();
+        transaction.setAmount(request.getAmount());
+        transaction.setTransactionType(TransactionType.DEPOSIT);
+        transaction.setAccount(account);
+        transactionRepository.save(transaction);
+
+           return account;
     }
 
     public Account withdrawMoney(DepositOrWithdrawRequest request){
@@ -83,10 +96,16 @@ public class AccountService {
             throw new RuntimeException("Balance is insufficient");
         }
 
-        Double updateBalance = account.getBalance() - request.getAmount();
-        account.setBalance(updateBalance);
+        account.setBalance( account.getBalance() - request.getAmount());
+        accountRepository.save(account);
 
-        return accountRepository.save(account);
+        Transaction transaction = new Transaction();
+        transaction.setAmount(request.getAmount());
+        transaction.setTransactionType(TransactionType.WITHDRAW);
+        transaction.setAccount(account);
+        transactionRepository.save(transaction);
+
+        return account;
     }
 
 @Transactional
@@ -121,6 +140,19 @@ public class AccountService {
 
     accountRepository.save(sender);
     accountRepository.save(receiver);
+
+
+    Transaction creditTransaction = new Transaction();
+    creditTransaction.setAmount(request.getAmount());
+    creditTransaction.setTransactionType(TransactionType.DEPOSIT);
+    creditTransaction.setAccount(receiver);
+    transactionRepository.save(creditTransaction);
+
+    Transaction receiveTransaction = new Transaction();
+    receiveTransaction.setAmount(request.getAmount());
+    receiveTransaction.setTransactionType(TransactionType.WITHDRAW);
+    receiveTransaction.setAccount(sender);
+    transactionRepository.save(receiveTransaction);
 
     return "Amount successfully transferred";
     }

@@ -2,8 +2,11 @@ package com.bankmgmt.demo.Entity;
 
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.List;
 
 @Entity
 @Table(name = " accounts ")
@@ -31,6 +34,10 @@ public class Account {
     @JoinColumn( name = "customerId")
     @JsonBackReference
     private  Customer customer;
+
+    @OneToMany(mappedBy = "account")
+    @JsonManagedReference
+    private List<Transaction> transactions;
 
 
 

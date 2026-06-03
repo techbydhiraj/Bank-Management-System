@@ -2,7 +2,7 @@ package com.bankmgmt.demo.Controller;
 
 
 import com.bankmgmt.demo.DTO.AccountRequest;
-import com.bankmgmt.demo.DTO.DepositRequest;
+import com.bankmgmt.demo.DTO.DepositOrWithdrawRequest;
 import com.bankmgmt.demo.Entity.Account;
 import com.bankmgmt.demo.Service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,8 +37,14 @@ public class AccountController {
     }
 
     @PutMapping("/deposit")
-    public Account depositMoney(@RequestBody DepositRequest request){
+    public Account depositMoney(@RequestBody DepositOrWithdrawRequest request){
 
         return accountService.depositMoney(request);
+    }
+
+    @PutMapping("/withdraw")
+    public Account withdrawMoney(@RequestBody DepositOrWithdrawRequest request){
+
+        return accountService.withdrawMoney(request);
     }
 }

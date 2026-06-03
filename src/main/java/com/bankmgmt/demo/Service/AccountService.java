@@ -1,11 +1,10 @@
 package com.bankmgmt.demo.Service;
 
 import com.bankmgmt.demo.DTO.AccountRequest;
-import com.bankmgmt.demo.DTO.DepositRequest;
+import com.bankmgmt.demo.DTO.DepositOrWithdrawRequest;
 import com.bankmgmt.demo.Entity.Account;
 import com.bankmgmt.demo.Entity.Customer;
 import com.bankmgmt.demo.Repository.AccountRepository;
-import com.bankmgmt.demo.Repository.CustomerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -46,7 +45,7 @@ public class AccountService {
         return accountRepository.findByCustomerCusId(id);
     }
 
-    public Account depositMoney(DepositRequest request){
+    public Account depositMoney(DepositOrWithdrawRequest request){
 
            Account account = accountRepository.findByAccountNumber(request.getAccountNumber());
 
@@ -63,6 +62,29 @@ public class AccountService {
         account.setBalance(updateBalance);
 
            return accountRepository.save(account);
+    }
+
+    public Account withdrawMoney(DepositOrWithdrawRequest request){
+
+        Account account = accountRepository.findByAccountNumber(request.getAccountNumber());
+
+
+        if (account == null) {
+            throw new RuntimeException("Account not found");
+        }
+
+        if (request.getAmount() <= 0) {
+            throw new RuntimeException("Deposit amount must be greater than 0");
+        }
+
+        if(account.getBalance() <= 0){
+            throw new RuntimeException("Balance is insufficient");
+        }
+
+        Double updateBalance = account.getBalance() - request.getAmount();
+        account.setBalance(updateBalance);
+
+        return accountRepository.save(account);
     }
 }
 

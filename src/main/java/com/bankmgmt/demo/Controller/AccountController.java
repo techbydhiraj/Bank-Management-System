@@ -2,6 +2,7 @@ package com.bankmgmt.demo.Controller;
 
 
 import com.bankmgmt.demo.DTO.AccountRequest;
+import com.bankmgmt.demo.DTO.DepositRequest;
 import com.bankmgmt.demo.Entity.Account;
 import com.bankmgmt.demo.Service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,5 +34,11 @@ public class AccountController {
     public List<Account> fetchAccountDetailByCusID(@PathVariable Integer id){
 
         return accountService.fetchAccountDetailByCusId(id);
+    }
+
+    @PutMapping("/deposit")
+    public Account depositMoney(@RequestBody DepositRequest request){
+
+        return accountService.depositMoney(request);
     }
 }

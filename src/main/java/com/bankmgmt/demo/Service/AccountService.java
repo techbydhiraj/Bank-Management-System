@@ -6,6 +6,7 @@ import com.bankmgmt.demo.DTO.TransOrReceiveMoney;
 import com.bankmgmt.demo.Entity.Account;
 import com.bankmgmt.demo.Entity.Customer;
 import com.bankmgmt.demo.Repository.AccountRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -88,7 +89,7 @@ public class AccountService {
         return accountRepository.save(account);
     }
 
-
+@Transactional
     public String transferMoney(TransOrReceiveMoney request){
 
          Account sender = accountRepository.findByAccountNumber(request.getFromAccountNumber());
@@ -99,22 +100,34 @@ public class AccountService {
             throw new RuntimeException("Amount must be greater than 0");
         }
 
-         Double creditMoney = request.getAmount() + receiver.getBalance();
-         receiver.setBalance(creditMoney);
-         accountRepository.save(receiver);
+        if (sender == null) {
+            throw new RuntimeException("Sender account not found");
+        }
 
-         Double debitMoney = sender.getBalance() - request.getAmount();
-         sender.setBalance(debitMoney);
-         accountRepository.save(sender);
+        if (receiver == null) {
+        throw new RuntimeException("Receiver account not found");
+        }
 
+    if (sender.getAccountNumber().equals(receiver.getAccountNumber())) {
+        throw new RuntimeException("Cannot transfer to same account");
+    }
 
+    if (sender.getBalance() < request.getAmount()) {
+        throw new RuntimeException("Insufficient balance");
+    }
 
-         return "Amount successfully transfered";
+    receiver.setBalance( request.getAmount() + receiver.getBalance() );
+    sender.setBalance( sender.getBalance() - request.getAmount() );
+
+    accountRepository.save(sender);
+    accountRepository.save(receiver);
+
+    return "Amount successfully transferred";
     }
 
     public String checkBalanceByAccountId(Integer id){
 
-        Account account = accountRepository.findById(id).orElseThrow( () -> new RuntimeException("ACcount Not Found") );
+        Account account = accountRepository.findById(id).orElseThrow( () -> new RuntimeException("Account Not Found") );
 
         return "Your balance is " + account.getBalance();
 

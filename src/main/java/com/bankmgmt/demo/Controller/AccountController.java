@@ -55,7 +55,7 @@ public class AccountController {
         return accountService.transferMoney(request);
     }
 
-    @GetMapping("/checkBalance/{id}")
+    @GetMapping("/{id}/balance")
     public String checkBalanceByAccountId(@PathVariable Integer id){
 
         return accountService.checkBalanceByAccountId(id);

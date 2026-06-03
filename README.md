@@ -4,6 +4,8 @@
 - Customer CRUD
 - Account CRUD
 - Customer-Account Relationship
+- Transaction CRUD
+- transaction-Account Relationship
 
 ## Tech Stack
 - Java

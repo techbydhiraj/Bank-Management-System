@@ -2,6 +2,7 @@ package com.bankmgmt.demo.Service;
 
 import com.bankmgmt.demo.DTO.AccountRequest;
 import com.bankmgmt.demo.DTO.DepositOrWithdrawRequest;
+import com.bankmgmt.demo.DTO.TransOrReceiveMoney;
 import com.bankmgmt.demo.Entity.Account;
 import com.bankmgmt.demo.Entity.Customer;
 import com.bankmgmt.demo.Repository.AccountRepository;
@@ -85,6 +86,38 @@ public class AccountService {
         account.setBalance(updateBalance);
 
         return accountRepository.save(account);
+    }
+
+
+    public String transferMoney(TransOrReceiveMoney request){
+
+         Account sender = accountRepository.findByAccountNumber(request.getFromAccountNumber());
+
+         Account receiver = accountRepository.findByAccountNumber(request.getToAccountNumber());
+
+        if (request.getAmount() <= 0) {
+            throw new RuntimeException("Amount must be greater than 0");
+        }
+
+         Double creditMoney = request.getAmount() + receiver.getBalance();
+         receiver.setBalance(creditMoney);
+         accountRepository.save(receiver);
+
+         Double debitMoney = sender.getBalance() - request.getAmount();
+         sender.setBalance(debitMoney);
+         accountRepository.save(sender);
+
+
+
+         return "Amount successfully transfered";
+    }
+
+    public String checkBalanceByAccountId(Integer id){
+
+        Account account = accountRepository.findById(id).orElseThrow( () -> new RuntimeException("ACcount Not Found") );
+
+        return "Your balance is " + account.getBalance();
+
     }
 }
 

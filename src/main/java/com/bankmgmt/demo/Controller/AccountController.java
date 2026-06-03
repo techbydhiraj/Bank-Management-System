@@ -3,6 +3,7 @@ package com.bankmgmt.demo.Controller;
 
 import com.bankmgmt.demo.DTO.AccountRequest;
 import com.bankmgmt.demo.DTO.DepositOrWithdrawRequest;
+import com.bankmgmt.demo.DTO.TransOrReceiveMoney;
 import com.bankmgmt.demo.Entity.Account;
 import com.bankmgmt.demo.Service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,4 +48,17 @@ public class AccountController {
 
         return accountService.withdrawMoney(request);
     }
+
+    @PutMapping("/transfer")
+    String transferMoney(@RequestBody TransOrReceiveMoney request){
+
+        return accountService.transferMoney(request);
+    }
+
+    @GetMapping("/checkBalance/{id}")
+    public String checkBalanceByAccountId(@PathVariable Integer id){
+
+        return accountService.checkBalanceByAccountId(id);
+    }
+
 }

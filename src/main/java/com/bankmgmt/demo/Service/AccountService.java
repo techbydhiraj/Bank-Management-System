@@ -50,7 +50,7 @@ public class AccountService {
 
         return accountRepository.findByCustomerCusId(id);
     }
-
+@Transactional
     public Account depositMoney(DepositOrWithdrawRequest request) {
 
         Account account = accountRepository.findByAccountNumber(request.getAccountNumber());
@@ -138,7 +138,7 @@ public class AccountService {
         throw new RuntimeException("Insufficient balance");
     }
 
-    if (sender.getAccountStatus().equals(AccountStatusType.ACTIVE) && receiver.getAccountStatus().equals(AccountStatusType.ACTIVE)) {
+    if (sender.getAccountStatus() == AccountStatusType.ACTIVE && receiver.getAccountStatus() == (AccountStatusType.ACTIVE)) {
         receiver.setBalance(request.getAmount() + receiver.getBalance());
         sender.setBalance(sender.getBalance() - request.getAmount());
         accountRepository.save(sender);
@@ -156,6 +156,13 @@ public class AccountService {
         receiveTransaction.setAccount(sender);
         transactionRepository.save(receiveTransaction);
     }
+        if (sender.getAccountStatus() != AccountStatusType.ACTIVE) {
+            throw new RuntimeException("Sender account is not active");
+        }
+
+        if (receiver.getAccountStatus() != AccountStatusType.ACTIVE) {
+            throw new RuntimeException("Receiver account is not active");
+        }
 
     return "Amount successfully transferred";
     }
@@ -179,7 +186,7 @@ public class AccountService {
 
     public String accountBlockByAccountId(Integer id){
         Account account = accountRepository.findById(id).orElseThrow();
-        account.setAccountStatus(AccountStatusType.ACTIVE);
+        account.setAccountStatus(AccountStatusType.BLOCKED);
 
         accountRepository.save(account);
 

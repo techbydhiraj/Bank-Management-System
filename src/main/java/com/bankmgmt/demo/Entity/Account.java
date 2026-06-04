@@ -39,6 +39,7 @@ public class Account {
     @JsonManagedReference
     private List<Transaction> transactions;
 
-
+    @Enumerated(EnumType.STRING)
+    private AccountStatusType accountStatus;
 
 }

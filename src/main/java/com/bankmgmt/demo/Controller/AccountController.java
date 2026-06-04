@@ -61,4 +61,24 @@ public class AccountController {
         return accountService.checkBalanceByAccountId(id);
     }
 
+    @PutMapping("/block/{id}")
+    public String blockAccountByAccountId(@PathVariable Integer id){
+        return accountService.accountBlockByAccountId(id);
+    }
+
+    @PutMapping("/unblock/{id}")
+    public String unblockAccountByAccountId(@PathVariable Integer id){
+        return accountService.accountUnblockByAccountId(id);
+    }
+
+    @GetMapping("/current/status/{id}")
+    public String currentAccountStatus(@PathVariable Integer id){
+        return accountService.currentAccountStatus(id);
+    }
+
+    @DeleteMapping("close/{id}")
+    public String deleteAccount(@PathVariable Integer id){
+        return accountService.deleteAccount(id);
+    }
+
 }

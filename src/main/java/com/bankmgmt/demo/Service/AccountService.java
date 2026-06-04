@@ -3,10 +3,7 @@ package com.bankmgmt.demo.Service;
 import com.bankmgmt.demo.DTO.AccountRequest;
 import com.bankmgmt.demo.DTO.DepositOrWithdrawRequest;
 import com.bankmgmt.demo.DTO.TransOrReceiveMoney;
-import com.bankmgmt.demo.Entity.Account;
-import com.bankmgmt.demo.Entity.Customer;
-import com.bankmgmt.demo.Entity.Transaction;
-import com.bankmgmt.demo.Entity.TransactionType;
+import com.bankmgmt.demo.Entity.*;
 import com.bankmgmt.demo.Repository.AccountRepository;
 import com.bankmgmt.demo.Repository.TransactionRepository;
 import jakarta.transaction.Transactional;
@@ -37,6 +34,7 @@ public class AccountService {
         account.setAccountNumber(request.getAccountNumber());
         account.setAccountType(request.getAccountType());
         account.setBalance(request.getBalance());
+        account.setAccountStatus(AccountStatusType.ACTIVE);
 
         account.setCustomer(customer);
 
@@ -53,7 +51,7 @@ public class AccountService {
         return accountRepository.findByCustomerCusId(id);
     }
 
-    public Account depositMoney(DepositOrWithdrawRequest request){
+    public Account depositMoney(DepositOrWithdrawRequest request) {
 
         Account account = accountRepository.findByAccountNumber(request.getAccountNumber());
 
@@ -65,16 +63,18 @@ public class AccountService {
         if (request.getAmount() <= 0) {
             throw new RuntimeException("Deposit amount must be greater than 0");
         }
+        if (account.getAccountStatus().equals(AccountStatusType.ACTIVE)){
+            account.setBalance(account.getBalance() + request.getAmount());
+            accountRepository.save(account);
 
-        account.setBalance( account.getBalance() + request.getAmount());
-
-        accountRepository.save(account);
-
-        Transaction transaction = new Transaction();
-        transaction.setAmount(request.getAmount());
-        transaction.setTransactionType(TransactionType.DEPOSIT);
-        transaction.setAccount(account);
-        transactionRepository.save(transaction);
+            Transaction transaction = new Transaction();
+            transaction.setAmount(request.getAmount());
+            transaction.setTransactionType(TransactionType.DEPOSIT);
+            transaction.setAccount(account);
+            transactionRepository.save(transaction);
+        }else{
+            throw new RuntimeException("Account is Not Active or blocked");
+        }
 
            return account;
     }
@@ -96,15 +96,18 @@ public class AccountService {
             throw new RuntimeException("Balance is insufficient");
         }
 
-        account.setBalance( account.getBalance() - request.getAmount());
-        accountRepository.save(account);
+        if (account.getAccountStatus().equals(AccountStatusType.ACTIVE)) {
+            account.setBalance(account.getBalance() - request.getAmount());
+            accountRepository.save(account);
 
-        Transaction transaction = new Transaction();
-        transaction.setAmount(request.getAmount());
-        transaction.setTransactionType(TransactionType.WITHDRAW);
-        transaction.setAccount(account);
-        transactionRepository.save(transaction);
-
+            Transaction transaction = new Transaction();
+            transaction.setAmount(request.getAmount());
+            transaction.setTransactionType(TransactionType.WITHDRAW);
+            transaction.setAccount(account);
+            transactionRepository.save(transaction);
+        }else{
+            throw new RuntimeException("Account is Not Active or blocked");
+        }
         return account;
     }
 
@@ -135,34 +138,63 @@ public class AccountService {
         throw new RuntimeException("Insufficient balance");
     }
 
-    receiver.setBalance( request.getAmount() + receiver.getBalance() );
-    sender.setBalance( sender.getBalance() - request.getAmount() );
+    if (sender.getAccountStatus().equals(AccountStatusType.ACTIVE) && receiver.getAccountStatus().equals(AccountStatusType.ACTIVE)) {
+        receiver.setBalance(request.getAmount() + receiver.getBalance());
+        sender.setBalance(sender.getBalance() - request.getAmount());
+        accountRepository.save(sender);
+        accountRepository.save(receiver);
 
-    accountRepository.save(sender);
-    accountRepository.save(receiver);
+        Transaction creditTransaction = new Transaction();
+        creditTransaction.setAmount(request.getAmount());
+        creditTransaction.setTransactionType(TransactionType.DEPOSIT);
+        creditTransaction.setAccount(receiver);
+        transactionRepository.save(creditTransaction);
 
-
-    Transaction creditTransaction = new Transaction();
-    creditTransaction.setAmount(request.getAmount());
-    creditTransaction.setTransactionType(TransactionType.DEPOSIT);
-    creditTransaction.setAccount(receiver);
-    transactionRepository.save(creditTransaction);
-
-    Transaction receiveTransaction = new Transaction();
-    receiveTransaction.setAmount(request.getAmount());
-    receiveTransaction.setTransactionType(TransactionType.WITHDRAW);
-    receiveTransaction.setAccount(sender);
-    transactionRepository.save(receiveTransaction);
+        Transaction receiveTransaction = new Transaction();
+        receiveTransaction.setAmount(request.getAmount());
+        receiveTransaction.setTransactionType(TransactionType.WITHDRAW);
+        receiveTransaction.setAccount(sender);
+        transactionRepository.save(receiveTransaction);
+    }
 
     return "Amount successfully transferred";
     }
 
     public String checkBalanceByAccountId(Integer id){
 
-        Account account = accountRepository.findById(id).orElseThrow( () -> new RuntimeException("Account Not Found") );
+        Account account = accountRepository.findById(id).orElseThrow(  () -> new RuntimeException("Account Not Found") );
 
         return "Your balance is " + account.getBalance();
 
+    }
+
+    public String accountUnblockByAccountId(Integer id){
+        Account account = accountRepository.findById(id).orElseThrow();
+        account.setAccountStatus(AccountStatusType.ACTIVE);
+
+        accountRepository.save(account);
+
+        return "Account is unblocked";
+    }
+
+    public String accountBlockByAccountId(Integer id){
+        Account account = accountRepository.findById(id).orElseThrow();
+        account.setAccountStatus(AccountStatusType.ACTIVE);
+
+        accountRepository.save(account);
+
+        return "Account is blocked";
+    }
+
+    public String currentAccountStatus(Integer id){
+        Account account = accountRepository.findById(id).orElseThrow();
+        return "Current account status : " + account.getAccountType();
+    }
+
+    public String deleteAccount(Integer id){
+        Account account = accountRepository.findById(id).orElseThrow();
+        accountRepository.deleteById(id);
+        return "Account is Closed ";
     }
 }
 

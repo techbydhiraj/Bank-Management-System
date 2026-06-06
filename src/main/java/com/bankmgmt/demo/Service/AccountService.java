@@ -10,8 +10,11 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 @Service
 public class AccountService {
@@ -50,12 +53,28 @@ public class AccountService {
 
         return accountRepository.findByCustomerCusId(id);
     }
-@Transactional
+
+    private String generateUtr(){
+        return "TXN" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+                + new Random().nextInt(10000);
+    }
+
+    private void createTransaction(Account account,Double amount,TransactionType type){
+
+        Transaction transaction = new Transaction();
+        String utr = generateUtr();
+        transaction.setUtr(utr);
+        transaction.setAmount(amount);
+        transaction.setTransactionType(type);
+        transaction.setAccount(account);
+        transactionRepository.save(transaction);
+
+    }
+    @Transactional
     public Account depositMoney(DepositOrWithdrawRequest request) {
 
         Account account = accountRepository.findByAccountNumber(request.getAccountNumber());
 
-
         if (account == null) {
             throw new RuntimeException("Account not found");
         }
@@ -63,49 +82,41 @@ public class AccountService {
         if (request.getAmount() <= 0) {
             throw new RuntimeException("Deposit amount must be greater than 0");
         }
-        if (account.getAccountStatus().equals(AccountStatusType.ACTIVE)){
+
+        if (account.getAccountStatus() == AccountStatusType.ACTIVE){
+
             account.setBalance(account.getBalance() + request.getAmount());
             accountRepository.save(account);
 
-            Transaction transaction = new Transaction();
-            transaction.setAmount(request.getAmount());
-            transaction.setTransactionType(TransactionType.DEPOSIT);
-            transaction.setAccount(account);
-            transactionRepository.save(transaction);
-        }else{
+            createTransaction(account,request.getAmount(),TransactionType.DEPOSIT);
+        }
+        else{
             throw new RuntimeException("Account is Not Active or blocked");
         }
-
            return account;
     }
-
+@Transactional
     public Account withdrawMoney(DepositOrWithdrawRequest request){
 
         Account account = accountRepository.findByAccountNumber(request.getAccountNumber());
 
-
         if (account == null) {
             throw new RuntimeException("Account not found");
         }
 
         if (request.getAmount() <= 0) {
-            throw new RuntimeException("Deposit amount must be greater than 0");
+            throw new RuntimeException("withdraw amount must be greater than 0");
         }
 
-        if(account.getBalance() <= 0){
-            throw new RuntimeException("Balance is insufficient");
+        if(account.getBalance() < request.getAmount()){
+        throw new RuntimeException("Balance is insufficient");
         }
-
-        if (account.getAccountStatus().equals(AccountStatusType.ACTIVE)) {
-            account.setBalance(account.getBalance() - request.getAmount());
-            accountRepository.save(account);
-
-            Transaction transaction = new Transaction();
-            transaction.setAmount(request.getAmount());
-            transaction.setTransactionType(TransactionType.WITHDRAW);
-            transaction.setAccount(account);
-            transactionRepository.save(transaction);
-        }else{
+        if (account.getAccountStatus() == AccountStatusType.ACTIVE) {
+                account.setBalance(account.getBalance() - request.getAmount());
+                accountRepository.save(account);
+                createTransaction(account,request.getAmount(),TransactionType.WITHDRAW);
+        }
+        else{
             throw new RuntimeException("Account is Not Active or blocked");
         }
         return account;
@@ -134,27 +145,20 @@ public class AccountService {
         throw new RuntimeException("Cannot transfer to same account");
     }
 
-    if (sender.getBalance() < request.getAmount()) {
-        throw new RuntimeException("Insufficient balance");
-    }
-
     if (sender.getAccountStatus() == AccountStatusType.ACTIVE && receiver.getAccountStatus() == (AccountStatusType.ACTIVE)) {
-        receiver.setBalance(request.getAmount() + receiver.getBalance());
-        sender.setBalance(sender.getBalance() - request.getAmount());
+
+        if (sender.getBalance() < request.getAmount()) {
+            throw new RuntimeException("Insufficient balance");
+        }else{
+            receiver.setBalance(request.getAmount() + receiver.getBalance());
+            sender.setBalance(sender.getBalance() - request.getAmount());
+        }
         accountRepository.save(sender);
         accountRepository.save(receiver);
 
-        Transaction creditTransaction = new Transaction();
-        creditTransaction.setAmount(request.getAmount());
-        creditTransaction.setTransactionType(TransactionType.DEPOSIT);
-        creditTransaction.setAccount(receiver);
-        transactionRepository.save(creditTransaction);
+        createTransaction(receiver,request.getAmount(),TransactionType.DEPOSIT);
+        createTransaction(sender,request.getAmount(),TransactionType.WITHDRAW);
 
-        Transaction receiveTransaction = new Transaction();
-        receiveTransaction.setAmount(request.getAmount());
-        receiveTransaction.setTransactionType(TransactionType.WITHDRAW);
-        receiveTransaction.setAccount(sender);
-        transactionRepository.save(receiveTransaction);
     }
         if (sender.getAccountStatus() != AccountStatusType.ACTIVE) {
             throw new RuntimeException("Sender account is not active");
@@ -195,12 +199,17 @@ public class AccountService {
 
     public String currentAccountStatus(Integer id){
         Account account = accountRepository.findById(id).orElseThrow();
-        return "Current account status : " + account.getAccountType();
+        return "Current account status : " + account.getAccountStatus();
     }
 
     public String deleteAccount(Integer id){
         Account account = accountRepository.findById(id).orElseThrow();
-        accountRepository.deleteById(id);
+        if(account.getBalance() == 0) {
+            account.setAccountStatus(AccountStatusType.CLOSED);
+            accountRepository.save(account);
+        }else {
+            throw new RuntimeException("Account can't be closed");
+        }
         return "Account is Closed ";
     }
 }

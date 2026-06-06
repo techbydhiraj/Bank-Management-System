@@ -6,6 +6,8 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Random;
 
 @Entity
 @Table(name = "transactions")
@@ -25,6 +27,9 @@ public class Transaction {
 
     @Enumerated(EnumType.STRING)
     private TransactionType transactionType;
+
+    @Column(unique = true , nullable = false)
+    private String utr;
 
     @JsonBackReference
     @ManyToOne
